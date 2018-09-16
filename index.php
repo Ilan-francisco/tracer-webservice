@@ -34,18 +34,32 @@ $app->post('/acessos', function (Request $request, Response $response) use ($app
     $params = $request->getParams();
 
     $entityManager = $this->get('em');
+    
+    $horario = (new DateTime());
 
     //TODO VALIDATE received JSON on $params
     foreach ($params as $single_param) {
         $acesso_param = (object) $single_param;
 
-        $acesso = (new Acesso())->setMac($acesso_param->mac)->setRssi($acesso_param->rssi);
+        $acesso = (new Acesso())->setMac($acesso_param->mac)->setRssi($acesso_param->rssi)->setHorario($horario);
 
         $entityManager->persist($acesso);
         $entityManager->flush();
     }
 
     $return = $response->withStatus(201);
+    return $return;
+});
+
+$app->get('/acessos', function(Request $request, Response $response) use ($app) {
+	$route = $request->getAttribute('route');
+    $entityManager = $this->get('em');
+    $acessosRepository = $entityManager->getRepository('App\Models\Entity\Acesso');
+    $acesso = $acessosRepository->findAll();
+    
+    $return = $response->withJson($acesso, 200)
+        ->withHeader('Content-type', 'application/json');
+    
     return $return;
 });
 

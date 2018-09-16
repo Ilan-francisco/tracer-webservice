@@ -20,6 +20,16 @@ class Acesso {
      * @Column(type="integer") 
      */
     public $rssi;
+    /**
+     * @var string
+     * @Column(type="datetime") 
+     */
+    public $horario;
+    /**
+     * @var int
+     * @Column(type="integer") 
+     */
+    public $id_device;
     
     /**
      * @return int id
@@ -43,6 +53,20 @@ class Acesso {
     }
     
     /**
+     * @return string horario
+     */
+    public function getHorario() {
+        return $this->horario;
+    }
+    
+    /**
+     * @return int id_device
+     */
+    public function getIdDevice() {
+        return $this->id_device;
+    }
+    
+    /**
      * @return Acesso()
      */
     public function setMac($mac) {
@@ -55,6 +79,22 @@ class Acesso {
      */
     public function setRssi($rssi) {
         $this->rssi = $rssi;
+        return $this;    
+    }
+    
+    /**
+     * @return Acesso()
+     */
+    public function setHorario($horario) {
+        $this->horario = $horario;
+        return $this;    
+    }
+    
+    /**
+     * @return Acesso()
+     */
+    public function setIdDevice($id_device) {
+        $this->id_device = $id_device;
         return $this;    
     }
 }
