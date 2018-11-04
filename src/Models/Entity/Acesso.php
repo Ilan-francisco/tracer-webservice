@@ -11,90 +11,33 @@ class Acesso {
      */
     public $id;
     /**
-     * @var string
-     * @Column(type="string") 
+     * @var int
+     * @ManyToOne(targetEntity="Usuario")
      */
-    public $mac;
+    public $id_usuario;
+    /**
+     * @var int
+     * @ManyToOne(targetEntity="Dispositivo")
+     */
+    public $id_dispositivo;
     /**
      * @var int
      * @Column(type="integer") 
      */
-    public $rssi;
+    public $intensidade_sinal;
     /**
      * @var string
      * @Column(type="datetime") 
      */
-    public $horario;
+    public $data_hora_entrada;
     /**
-     * @var int
-     * @Column(type="integer") 
+     * @var string
+     * @Column(type="datetime")
      */
-    public $id_device;
-    
+    public $data_hora_visto_por_ultimo;
     /**
-     * @return int id
+     * @var bool
+     * @Column(type="boolean")
      */
-    public function getId(){
-        return $this->id;
-    }
-    
-    /**
-     * @return string mac
-     */
-    public function getMac(){
-        return $this->mac;
-    }
-    
-    /**
-     * @return int rssi
-     */
-    public function getRssi() {
-        return $this->rssi;
-    }
-    
-    /**
-     * @return string horario
-     */
-    public function getHorario() {
-        return $this->horario;
-    }
-    
-    /**
-     * @return int id_device
-     */
-    public function getIdDevice() {
-        return $this->id_device;
-    }
-    
-    /**
-     * @return Acesso()
-     */
-    public function setMac($mac) {
-        $this->mac = $mac;
-        return $this;    
-    }     
-    
-    /**
-     * @return Acesso()
-     */
-    public function setRssi($rssi) {
-        $this->rssi = $rssi;
-        return $this;    
-    }
-    
-    /**
-     * @return Acesso()
-     */
-    public function setHorario($horario) {
-        $this->horario = $horario;
-        return $this;    
-    }
-    
-    /**
-     * @return Acesso()
-     */
-    public function setIdDevice($id_device) {
-        $this->id_device = $id_device;
-        return $this;    
-    }
+    public $online;
 }
