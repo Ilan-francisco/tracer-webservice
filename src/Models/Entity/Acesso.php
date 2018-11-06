@@ -11,10 +11,10 @@ class Acesso {
      */
     public $id;
     /**
-     * @var int
-     * @ManyToOne(targetEntity="Usuario")
+     * @var string
+     * @Column(type="string", length=17)
      */
-    public $id_usuario;
+    public $mac_usuario;
     /**
      * @var int
      * @ManyToOne(targetEntity="Dispositivo")
