@@ -131,6 +131,29 @@ $app->get('/users/{mac}', function (Request $request, Response $response) use ($
     return $return;
 });
 
+$app->post('/users/new', function (Request $request, Response $response) use ($app) {
+    $entityManager = $this->get('em');
+    $params = (object) $request->getParams();
+
+    //error_log(json_encode($params));
+
+    $horario = (new DateTime());
+
+    $usuario = new Usuario();
+	 $usuario->data_cadastro = $horario;
+	 $usuario->ativo = true;
+	 $usuario->email = $params->email;
+	 $usuario->mac_celular = $params->mac;
+	 $usuario->nome = $params->nome;
+
+    $entityManager->persist($usuario);
+    $entityManager->flush();
+
+    $return = $response->withJson($usuario, 201)
+        ->withHeader('Content-type', 'application/json');
+
+    return $return;
+});
 
 $app->run();
 
