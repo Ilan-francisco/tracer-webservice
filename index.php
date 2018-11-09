@@ -107,6 +107,18 @@ $app->get ("/users/on", function (Request $request, Response $response) use ($ap
     return $return;
 });
 
+$app->get ('/users', function (Request $request, Response $response) use ($app) {
+    $entityManager = $this->get('em');
+    setOffline($entityManager);
+    $acessosRepository = $entityManager->getRepository("App\Models\Entity\Acesso");
+    $acessosOnline = $acessosRepository->findAll();
+
+    $return = $response->withJson($acessosOnline, 200)
+        ->withHeader('Content-type', 'application/json');
+
+    return $return;
+});
+
 function setDotOnMac($mac_undotted) {
     $result = "";
     for ($i = 0; $i < 6; $i++) {
