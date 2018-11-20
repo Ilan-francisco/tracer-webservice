@@ -46,13 +46,21 @@ function listaOnline($entityManager) {
     return $acessosOnline;
 }
 
-function acessoOnline($lista, $mac) {
+function acessoOnline($lista, $mac, $id_device) {
     foreach ($lista as $acesso) {
-        if ($acesso->mac_usuario === $mac) {
+        if ($acesso->mac_usuario === $mac && $acesso->id_dispositivo->id === $id_device) {
             return $acesso;
         }
     }
     return null;
+}
+
+function getDispositivo($entityManager, $id) {
+    $dispRepository = $entityManager->getRepository("App\Models\Entity\Dispositivo");
+
+    $dispositivo =  $dispRepository->find($id);
+
+    return $dispositivo;
 }
 
 
@@ -62,13 +70,17 @@ $app->post('/acessos', function (Request $request, Response $response) use ($app
     $entityManager = $this->get('em');
     $horario = (new DateTime());
 
+
+    $dispositivo1 = getDispositivo($entityManager, 1);
+    $dispositivo2 = getDispositivo($entityManager, 2);
+
     setOffline($entityManager);
 
     foreach ($params as $node) {
         $acesso_param = (object) $node;
 
         //VERIFICA QUAIS DA LISTA RECEBIDA ESTAO ONLINE, SE ESTIVER ONLINE, VAI SETAR O VISTO POR ULTIMO COM O HORARIO DE AGORA
-        $acesso_online = acessoOnline(listaOnline($entityManager), $acesso_param->mac);
+        $acesso_online = acessoOnline(listaOnline($entityManager), $acesso_param->mac, $acesso_param->id_dev);
         if ( $acesso_online != null ) {
             $acesso_online->data_hora_visto_por_ultimo = $horario;
             $acesso_online->intensidade_sinal = $acesso_param->rssi;
@@ -76,15 +88,18 @@ $app->post('/acessos', function (Request $request, Response $response) use ($app
             $entityManager->persist($acesso_online);
             $entityManager->flush();
         } else {
-            $acesso = new Acesso();
-            $acesso->mac_usuario = $acesso_param->mac;
-            $acesso->data_hora_entrada = $horario;
-            $acesso->intensidade_sinal = $acesso_param->rssi;
-            $acesso->online = true;
-            $acesso->data_hora_visto_por_ultimo = $horario;
+            if (strlen($acesso_param->mac) == 17) {
+                $acesso = new Acesso();
+                $acesso->id_dispositivo = ($acesso_param->id_dev == 1)? $dispositivo1 : $dispositivo2;//TODO
+                $acesso->mac_usuario = $acesso_param->mac;
+                $acesso->data_hora_entrada = $horario;
+                $acesso->intensidade_sinal = $acesso_param->rssi;
+                $acesso->online = true;
+                $acesso->data_hora_visto_por_ultimo = $horario;
 
-            $entityManager->persist($acesso);
-            $entityManager->flush();
+                $entityManager->persist($acesso);
+                $entityManager->flush();
+            }
         }
     }
 
@@ -92,6 +107,29 @@ $app->post('/acessos', function (Request $request, Response $response) use ($app
 
     return $return;
 });
+
+function getJson($lista) {
+
+    $json = "[";
+	foreach ($lista as $acesso) {
+	    //error_log(json_encode($acesso->id_dispositivo->id));
+	    $json .= "{";
+	    $json .= '"id":'.$acesso->id.',';
+        $json .= '"mac_usuario":"'.$acesso->mac_usuario.'",';
+        $json .= '"id_dispositivo":'.json_encode((is_null($acesso->id_dispositivo)?null:$acesso->id_dispositivo->id)).',';
+        $json .= '"intensidade_sinal":'.$acesso->intensidade_sinal.',';
+        $json .= '"data_hora_entrada":"'.$acesso->data_hora_entrada->format('Y-m-d H:i:s').'",';
+        $json .= '"data_hora_visto_por_ultimo":"'.$acesso->data_hora_visto_por_ultimo->format('Y-m-d H:i:s').'",';
+        $json .= '"online":'.json_encode($acesso->online)."},";
+	}
+	if (strlen($json) != 1) {
+        $json[strlen($json) - 1] = ']';
+    } else {
+	    $json .= "]";
+    }
+
+	return $json;
+}
 
 //LISTA PESSOAS ON
 $app->get ("/users/on", function (Request $request, Response $response) use ($app) {
@@ -111,10 +149,21 @@ $app->get ('/users', function (Request $request, Response $response) use ($app) 
     $entityManager = $this->get('em');
     setOffline($entityManager);
     $acessosRepository = $entityManager->getRepository("App\Models\Entity\Acesso");
-    $acessosOnline = $acessosRepository->findAll();
+    $acessos = $acessosRepository->findAll();
 
-    $return = $response->withJson($acessosOnline, 200)
-        ->withHeader('Content-type', 'application/json');
+    $return = $response->withHeader('Content-type', 'application/json')->write(getJson($acessos));
+
+    return $return;
+});
+
+$app->get('/allusers', function (Request $request, Response $response) use ($app) {
+    $entityManager = $this->get('em');
+    setOffline($entityManager);
+    $usuariosRepository = $entityManager->getRepository("App\Models\Entity\Usuario");
+    $usuarios = $usuariosRepository->findAll();
+
+    $return = $response->withJson($usuarios, 200)
+                        ->withHeader('Content-type', 'application/json');
 
     return $return;
 });
@@ -137,8 +186,37 @@ $app->get('/users/{mac}', function (Request $request, Response $response) use ($
 
     $acessosPessoa = $acessosRepository->findBy(array('mac_usuario' => setDotOnMac($mac)));
 
-    $return = $response->withJson($acessosPessoa, 200)
+    $return = $response->withHeader('Content-type', 'application/json')->write(getJson($acessosPessoa));
+
+    return $return;
+});
+
+$app->get('/users/{mac}/nome', function (Request $request, Response $response) use ($app) {
+    $route = $request->getAttribute('route');
+    $mac = $route->getArgument('mac');
+    $entityManager = $this->get('em');
+    setOffline($entityManager);
+    $usersRepository = $entityManager->getRepository("App\Models\Entity\Usuario");
+
+    $pessoa = $usersRepository->findBy(array('mac_celular' => setDotOnMac($mac)));
+
+    $return = $response->withJson($pessoa[0], 200)
         ->withHeader('Content-type', 'application/json');
+
+    return $return;
+});
+
+//LISTA USUARIOS ON NO DISPOSITIVO
+$app->get('/users/device/{id}', function (Request $request, Response $response) use ($app) {
+    $route = $request->getAttribute('route');
+    $id = $route->getArgument('id');
+    $entityManager = $this->get('em');
+    setOffline($entityManager);
+    $acessosRepository = $entityManager->getRepository("App\Models\Entity\Acesso");
+
+    $acessosDispositivo = $acessosRepository->findBy(array('online' => true, 'id_dispositivo' => $id));
+
+    $return = $response->withHeader('Content-type', 'application/json')->write(getJson($acessosDispositivo));
 
     return $return;
 });
@@ -166,6 +244,38 @@ $app->post('/users/new', function (Request $request, Response $response) use ($a
 
     return $return;
 });
+
+$app->get('/devices', function (Request $request, Response $response) use ($app) {
+    $route = $request->getAttribute('route');
+    $mac = $route->getArgument('mac');
+    $entityManager = $this->get('em');
+
+    $dispositivosRepository = $entityManager->getRepository("App\Models\Entity\Dispositivo");
+
+    $dipositivos = $dispositivosRepository->findAll();
+
+    $return = $response->withJson($dipositivos, 200)
+        ->withHeader('Content-type', 'application/json');
+
+    return $return;
+});
+
+
+$app->get('/devices/{mac}', function (Request $request, Response $response) use ($app) {
+    $route = $request->getAttribute('route');
+    $mac = $route->getArgument('mac');
+    $entityManager = $this->get('em');
+
+    $dispositivosRepository = $entityManager->getRepository("App\Models\Entity\Dispositivo");
+
+    $dipositivo = $dispositivosRepository->findBy(array('mac_usuario' => setDotOnMac($mac)));
+
+    $return = $response->withHeader('Content-Type', 'text/plain')->write($dipositivo[0]->id);
+
+    return $return;
+});
+
+//TODO PEGAR ESTATISTICAS DE CADA DISPOSITIVO, COMO QNTD DE CADASTRADOS E USUARIOS
 
 $app->run();
 
