@@ -5,6 +5,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 use App\Models\Entity\Acesso;
 use App\Models\Entity\Usuario;
+use App\Models\Entity\MacVendor;
 
 require 'bootstrap.php';
 
@@ -271,6 +272,41 @@ $app->get('/devices/{mac}', function (Request $request, Response $response) use 
     $dipositivo = $dispositivosRepository->findBy(array('mac_usuario' => setDotOnMac($mac)));
 
     $return = $response->withHeader('Content-Type', 'text/plain')->write($dipositivo[0]->id);
+
+    return $return;
+});
+
+
+//INSERT MAC VENDOR
+$app->post('/mac-vendor/new', function (Request $request, Response $response) use ($app) {
+    $entityManager = $this->get('em');
+    $params = (object) $request->getParams();
+
+
+    $macVendor = new MacVendor();
+    $macVendor->mac_init = $params->mac_init;
+    $macVendor->vendor = $params->vendor;
+
+    $entityManager->persist($macVendor);
+    $entityManager->flush();
+
+    $return = $response->withJson($macVendor, 201)
+        ->withHeader('Content-type', 'application/json');
+
+    return $return;
+});
+
+
+//LIST MACVENDOR
+$app->get('/mac-vendor', function (Request $request, Response $response) use ($app) {
+    $entityManager = $this->get('em');
+
+    $macVendorRepository = $entityManager->getRepository("App\Models\Entity\MacVendor");
+
+    $macVendors = $macVendorRepository->findAll();
+
+    $return = $response->withJson($macVendors, 200)
+        ->withHeader('Content-type', 'application/json');
 
     return $return;
 });
